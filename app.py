@@ -120,6 +120,9 @@ def cluster(k):
                          features=available_features)
 
 # Untuk running di Railway
+import os
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    # Ambil port dari Railway, jika tidak ada gunakan 5000 (untuk lokal)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
