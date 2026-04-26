@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Segmentation - K-Means Clustering</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-100px) rotate(180deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            border-radius: 30px;
+            border: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 30px 30px 0 0 !important;
+            padding: 2rem;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .btn-cluster {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            margin: 8px;
+            transition: all 0.3s;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-cluster::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-cluster:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-cluster:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .info-item {
+            padding: 15px;
+            border-left: 4px solid #764ba2;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .info-item:hover {
+            transform: translateX(10px);
+            background: #e9ecef;
+        }
+
+        /* Loading animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .stat-number {
+                font-size: 1.8rem;
+            }
+            
+            .btn-cluster {
+                padding: 8px 20px;
+                font-size: 14px;
+            }
+            
+            .feature-card {
+                margin-bottom: 15px;
+            }
+        }
+
+        /* Tooltip customization */
+        .tooltip-inner {
+            background-color: #764ba2;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .bs-tooltip-top .tooltip-arrow::before {
+            border-top-color: #764ba2;
+        }
+
+        /* Progress bar animation */
+        .progress {
+            height: 30px;
+            border-radius: 15px;
+            background: #e9ecef;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            transition: width 1s ease;
+        }
+
+        /* Interactive hover effects */
+        .hover-grow {
+            transition: all 0.3s;
+        }
+
+        .hover-grow:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader"></div>
+        <p class="text-white mt-3">Memproses clustering...</p>
+    </div>
+
+    <!-- Animated Background Particles -->
+    <div class="particles" id="particles"></div>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Main Card -->
+                <div class="card">
+                    <div class="card-header text-white text-center">
+                        <i class="fas fa-chart-line fa-3x mb-3"></i>
+                        <h1 class="display-4 fw-bold">Customer Segmentation</h1>
+                        <p class="lead mb-0">Advanced K-Means Clustering Analysis</p>
+                        <small><i class="fas fa-robot"></i> Powered by Machine Learning</small>
+                    </div>
+                    
+                    <div class="card-body p-5">
+                        <!-- Feature Cards -->
+                        <div class="row mb-5">
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-database feature-icon"></i>
+                                    <h5 class="mt-2 fw-bold">Real Dataset</h5>
+                                    <small class="text-muted">UCI Wholesale Customers</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-primary">{{ total_data }}</span>
+                                        <span class="text-muted"> records</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-brain feature-icon"></i>
+                                    <h5 class="mt-2 fw-bold">K-Means Algorithm</h5>
+                                    <small class="text-muted">Unsupervised Learning</small>
+                                    <div class="mt-2">
+                                        <i class="fas fa-chart-line text-success"></i>
+                                        <span class="text-muted"> Elbow Method</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="feature-card text-center">
+                                    <i class="fas fa-chart-pie feature-icon"></i>
+                                    <h5 class="mt-2 fw-bold">PCA Visualization</h5>
+                                    <small class="text-muted">2D Dimensionality Reduction</small>
+                                    <div class="mt-2">
+                                        <i class="fas fa-percent text-info"></i>
+                                        <span class="text-muted"> Variance: ~85%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics Dashboard -->
+                        <div class="row mb-5">
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <i class="fas fa-chart-simple fa-2x float-end text-primary"></i>
+                                    <h6 class="text-muted mb-1">Total Pelanggan</h6>
+                                    <div class="stat-number">{{ total_data }}</div>
+                                    <small><i class="fas fa-users"></i> Active customers in dataset</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <i class="fas fa-cubes fa-2x float-end text-primary"></i>
+                                    <h6 class="text-muted mb-1">Fitur yang Digunakan</h6>
+                                    <div class="stat-number">6</div>
+                                    <small><i class="fas fa-tag"></i> Product categories</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- K Selection Section -->
+                        <div class="text-center mb-5">
+                            <h3 class="mb-3">
+                                <i class="fas fa-layer-group"></i> 
+                                Pilih Jumlah Cluster (K)
+                            </h3>
+                            <p class="text-muted mb-4">
+                                <i class="fas fa-info-circle"></i> 
+                                K = 3 adalah rekomendasi berdasarkan Elbow Method
+                            </p>
+                            
+                            <div class="d-flex justify-content-center flex-wrap">
+                                <a href="#" onclick="handleClusterClick(2)" class="btn btn-cluster text-white">
+                                    <i class="fas fa-chart-bar"></i> K = 2
+                                </a>
+                                <a href="#" onclick="handleClusterClick(3)" class="btn btn-cluster text-white" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                    <i class="fas fa-star"></i> K = 3 (Rekomendasi)
+                                </a>
+                                <a href="#" onclick="handleClusterClick(4)" class="btn btn-cluster text-white">
+                                    <i class="fas fa-chart-line"></i> K = 4
+                                </a>
+                                <a href="#" onclick="handleClusterClick(5)" class="btn btn-cluster text-white">
+                                    <i class="fas fa-chart-scatter"></i> K = 5
+                                </a>
+                                <a href="#" onclick="handleClusterClick(6)" class="btn btn-cluster text-white">
+                                    <i class="fas fa-chart-gantt"></i> K = 6
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Preview -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <strong>Tips:</strong> Pilih jumlah cluster yang berbeda untuk melihat segmentasi pelanggan yang optimal!
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Information Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="accordion" id="accordionInfo">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInfo">
+                                                <i class="fas fa-info-circle me-2"></i> Informasi Lengkap Dataset
+                                            </button>
+                                        </h2>
+                                        <div id="collapseInfo" class="accordion-collapse collapse" data-bs-parent="#accordionInfo">
+                                            <div class="accordion-body">
+                                                <h6><i class="fas fa-database"></i> Sumber Data</h6>
+                                                <p>UCI Machine Learning Repository - Wholesale Customers Dataset</p>
+                                                
+                                                <h6 class="mt-3"><i class="fas fa-chart-line"></i> Fitur yang Digunakan</h6>
+                                                <ul>
+                                                    <li><strong>Fresh</strong> - Annual spending on fresh products</li>
+                                                    <li><strong>Milk</strong> - Annual spending on milk products</li>
+                                                    <li><strong>Grocery</strong> - Annual spending on grocery products</li>
+                                                    <li><strong>Frozen</strong> - Annual spending on frozen products</li>
+                                                    <li><strong>Detergents_Paper</strong> - Annual spending on detergents and paper</li>
+                                                    <li><strong>Delicassen</strong> - Annual spending on delicatessen products</li>
+                                                </ul>
+                                                
+                                                <h6 class="mt-3"><i class="fas fa-chart-bar"></i> Metode Analisis</h6>
+                                                <ul>
+                                                    <li><strong>Preprocessing:</strong> StandardScaler (normalisasi data)</li>
+                                                    <li><strong>Clustering:</strong> K-Means dengan random_state=42</li>
+                                                    <li><strong>Visualisasi:</strong> Principal Component Analysis (PCA) 2D</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendation Section -->
+                <div class="card mt-4">
+                    <div class="card-body p-4">
+                        <h5 class="text-center mb-3">
+                            <i class="fas fa-chart-line"></i> 
+                            Interpretasi Segmentasi Pelanggan
+                        </h5>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <i class="fas fa-store fa-2x text-primary"></i>
+                                <p class="mt-2"><strong>Cluster 0</strong><br>High-Value Customers</p>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-chart-line fa-2x text-success"></i>
+                                <p class="mt-2"><strong>Cluster 1</strong><br>Regular Customers</p>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-chart-bar fa-2x text-info"></i>
+                                <p class="mt-2"><strong>Cluster 2</strong><br>Occasional Buyers</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Create animated particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 10 + 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${Math.random() * 20 + 10}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Handle cluster button click with loading animation
+        function handleClusterClick(k) {
+            // Show loading overlay
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            
+            // Add click animation to the button
+            const buttons = document.querySelectorAll('.btn-cluster');
+            buttons.forEach(btn => {
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = '';
+                }, 200);
+            });
+            
+            // Redirect after short delay for better UX
+            setTimeout(() => {
+                window.location.href = `/cluster/${k}`;
+            }, 500);
+        }
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Create particles on load
+        createParticles();
+        
+        // Add smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // Add hover effect to feature cards
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-10px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Display data info on console
+        console.log('Customer Segmentation App Loaded');
+        console.log(`Total Data: {{ total_data }} records`);
+        
+        // Remove loading overlay if page loads with parameter (for result page)
+        window.addEventListener('load', () => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
