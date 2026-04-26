@@ -123,6 +123,6 @@ def cluster(k):
 import os
 
 if __name__ == '__main__':
-    # Ambil port dari Railway, jika tidak ada gunakan 5000 (untuk lokal)
-    port = int(os.environ.get("PORT", 5000))
+    # Railway akan mengisi variabel PORT secara otomatis
+    port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
